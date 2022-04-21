@@ -118,6 +118,10 @@ func main() {
 
 				fmt.Println(commands.ShowByPrefix(args[2], format))
 				break
+			// Sub-command: prefix
+			case "all":
+				fmt.Println(commands.ShowByAll())
+				break
 			// Sub-command: limit
 			case "limit":
 				if len(args) < 3 || len(args) > 4 {

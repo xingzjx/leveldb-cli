@@ -10,11 +10,25 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"text/tabwriter"
+
 	"github.com/liderman/leveldb-cli/cliutil"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"text/tabwriter"
 )
+
+// It shows the contents of the database prefix filtering.
+// Use the field `format` for specifying the display format of data.
+// The list of possible values of format options: raw (default), geohash, bson, int64, float64
+//
+// Returns a string containing information about the result of the operation.
+func ShowByAll() string {
+	if !isConnected {
+		return AppError(ErrDbDoesNotOpen)
+	}
+
+	return showByIteratorAll(dbh.NewIterator(nil, nil))
+}
 
 // It shows the contents of the database prefix filtering.
 // Use the field `format` for specifying the display format of data.
@@ -93,6 +107,44 @@ func showByIterator(iter iterator.Iterator, format string, limit int) string {
 		if limit != 0 && count >= limit {
 			break
 		}
+	}
+
+	w.Flush()
+
+	iter.Release()
+	err := iter.Error()
+	if err != nil {
+		return "Error iterator!"
+	}
+
+	writer.Flush()
+	return string(b.Bytes())
+}
+
+// Show by iterator
+//
+// Returns a string containing information about the result of the operation.
+func showByIteratorAll(iter iterator.Iterator) string {
+	if iter.Error() != nil {
+		return "Empty result!"
+	}
+
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+	w := new(tabwriter.Writer)
+
+	w.Init(writer, 0, 8, 0, '\t', 0)
+	fmt.Fprintln(w, "Key\t| Value")
+
+	count := 0
+	for iter.Next() {
+		key := iter.Key()
+		value := iter.Value()
+
+		fmt.Fprintf(w, "%s\t| %s\n", string(key), string(value))
+
+		count++
+
 	}
 
 	w.Flush()
